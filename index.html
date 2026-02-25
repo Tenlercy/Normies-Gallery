@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Normies Gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-tertiary: #1a1a25;
+      --bg-card: #16161f;
+      --text-primary: #e8e8ed;
+      --text-secondary: #8b8b9a;
+      --text-muted: #5a5a6e;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --border: #2a2a3a;
+      --success: #22c55e;
+      --warning: #f59e0b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-content {
+      max-width: 1800px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+    }
+
+    .logo {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .stats {
+      display: flex;
+      gap: 2rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .stat-value {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* Main Layout */
+    .container {
+      max-width: 1800px;
+      margin: 0 auto;
+      display: flex;
+      gap: 1.5rem;
+      padding: 1.5rem;
+    }
+
+    /* Sidebar Filters */
+    .sidebar {
+      width: 280px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 80px;
+      height: fit-content;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+    }
+
+    .filter-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+
+    .filter-header {
+      padding: 1rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .filter-header:hover {
+      color: var(--text-primary);
+    }
+
+    .filter-header .arrow {
+      transition: transform 0.2s;
+    }
+
+    .filter-header.collapsed .arrow {
+      transform: rotate(-90deg);
+    }
+
+    .filter-options {
+      padding: 0.75rem;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .filter-options.collapsed {
+      display: none;
+    }
+
+    .filter-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.15s;
+    }
+
+    .filter-option:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .filter-option.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    .filter-option.active .count {
+      color: rgba(255,255,255,0.8);
+    }
+
+    .count {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    /* Search & Controls */
+    .controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      font-family: inherit;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .search-box::before {
+      content: "⌕";
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+
+    .sort-select {
+      padding: 0.75rem 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .sort-select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* Gallery Grid */
+    .gallery {
+      flex: 1;
+    }
+
+    .gallery-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .results-count {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .results-count span {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+      box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
+    }
+
+    .card-image {
+      aspect-ratio: 1;
+      background: var(--bg-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .card-image img, .card-image svg {
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+    }
+
+    .card-info {
+      padding: 1rem;
+    }
+
+    .card-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .card-traits {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+    }
+
+    .trait-tag {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.5rem;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+      color: var(--text-secondary);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 2rem;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: auto;
+      animation: modalIn 0.2s ease;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      padding: 2rem;
+    }
+
+    @media (max-width: 768px) {
+      .modal-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .modal-image {
+      background: var(--bg-tertiary);
+      border-radius: 16px;
+      padding: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-image img, .modal-image svg {
+      width: 100%;
+      max-width: 400px;
+      image-rendering: pixelated;
+    }
+
+    .modal-details h2 {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-traits {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-trait {
+      background: var(--bg-tertiary);
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+    }
+
+    .modal-trait-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .modal-trait-value {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .modal-stats {
+      display: flex;
+      gap: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .modal-stat {
+      flex: 1;
+      text-align: center;
+      padding: 1rem;
+      background: var(--bg-tertiary);
+      border-radius: 10px;
+    }
+
+    .modal-stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .modal-stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: var(--bg-tertiary);
+      border: none;
+      color: var(--text-primary);
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close:hover {
+      background: var(--border);
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-secondary);
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 2rem;
+    }
+
+    .page-btn {
+      padding: 0.5rem 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.15s;
+    }
+
+    .page-btn:hover {
+      border-color: var(--accent);
+    }
+
+    .page-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .page-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Clear filters */
+    .clear-filters {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+      transition: all 0.15s;
+    }
+
+    .clear-filters:hover {
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">
+        <div class="logo-icon">◈</div>
+        Normies
+      </div>
+      <div class="stats">
+        <div>Total: <span class="stat-value">10,000</span></div>
+        <div>Filtered: <span class="stat-value" id="filtered-count">10,000</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar">
+      <button class="clear-filters" onclick="clearFilters()">Clear All Filters</button>
+      <div id="filters"></div>
+    </aside>
+
+    <main class="gallery">
+      <div class="controls">
+        <div class="search-box">
+          <input type="text" id="search" placeholder="Search by ID or name..." oninput="handleSearch()">
+        </div>
+        <select class="sort-select" id="sort" onchange="handleSort()">
+          <option value="id-asc">ID: Low to High</option>
+          <option value="id-desc">ID: High to Low</option>
+          <option value="pixels-asc">Pixel Count: Low to High</option>
+          <option value="pixels-desc">Pixel Count: High to Low</option>
+        </select>
+      </div>
+      
+      <div class="gallery-header">
+        <div class="results-count">Showing <span id="showing-count">100</span> of <span id="total-count">10,000</span> Normies</div>
+      </div>
+
+      <div class="grid" id="grid"></div>
+      
+      <div class="pagination" id="pagination"></div>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="modal" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="modal-content" id="modal-content"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://api.normies.art';
+    const TOTAL = 10000;
+    const PER_PAGE = 40;
+    
+    let allNormies = [];
+    let filteredNormies = [];
+    let currentPage = 1;
+    let traitFilters = {};
+    let searchQuery = '';
+    let sortBy = 'id-asc';
+
+    // Trait categories from API docs
+    const TRAIT_CATEGORIES = ['Type', 'Gender', 'Age', 'Hair Style', 'Facial Feature', 'Eyes', 'Expression', 'Accessory'];
+
+    // Initialize
+    async function init() {
+      showLoading();
+      await loadAllNormies();
+      buildFilters();
+      renderGallery();
+    }
+
+    // Load all normies metadata (batched for performance)
+    async function loadAllNormies() {
+      const batchSize = 50;
+      const batches = [];
+      
+      for (let i = 0; i < TOTAL; i += batchSize) {
+        const batch = [];
+        for (let j = i; j < Math.min(i + batchSize, TOTAL); j++) {
+          batch.push(fetchNormie(j));
+        }
+        batches.push(Promise.all(batch));
+        // Rate limit: 60 req/min
+        if (i % 300 === 0) await new Promise(r => setTimeout(r, 1000));
+      }
+
+      const results = await Promise.all(batches);
+      allNormies = results.flat().filter(n => n !== null);
+      filteredNormies = [...allNormies];
+    }
+
+    async function fetchNormie(id) {
+      try {
+        const res = await fetch(`${API_BASE}/normie/${id}/metadata`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return { id, ...data };
+      } catch (e) {
+        console.error(`Failed to fetch normie ${id}:`, e);
+        return null;
+      }
+    }
+
+    // Build trait filters from data
+    function buildFilters() {
+      const traitCounts = {};
+      TRAIT_CATEGORIES.forEach(cat => traitCounts[cat] = {});
+
+      allNormies.forEach(normie => {
+        normie.attributes.forEach(attr => {
+          if (TRAIT_CATEGORIES.includes(attr.trait_type)) {
+            const val = attr.value;
+            traitCounts[attr.trait_type][val] = (traitCounts[attr.trait_type][val] || 0) + 1;
+          }
+        });
+      });
+
+      const filtersContainer = document.getElementById('filters');
+      filtersContainer.innerHTML = TRAIT_CATEGORIES.map(category => {
+        const options = Object.entries(traitCounts[category])
+          .sort((a, b) => b[1] - a[1])
+          .map(([value, count]) => `
+            <div class="filter-option" data-category="${category}" data-value="${value}" onclick="toggleFilter('${category}', '${value}')">
+              <span>${value}</span>
+              <span class="count">${count}</span>
+            </div>
+          `).join('');
+
+        return `
+          <div class="filter-section">
+            <div class="filter-header" onclick="toggleFilterSection(this)">
+              ${category}
+              <span class="arrow">▼</span>
+            </div>
+            <div class="filter-options">
+              ${options}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleFilterSection(header) {
+      header.classList.toggle('collapsed');
+      header.nextElementSibling.classList.toggle('collapsed');
+    }
+
+    function toggleFilter(category, value) {
+      if (!traitFilters[category]) traitFilters[category] = [];
+      
+      const idx = traitFilters[category].indexOf(value);
+      if (idx > -1) {
+        traitFilters[category].splice(idx, 1);
+        if (traitFilters[category].length === 0) delete traitFilters[category];
+      } else {
+        traitFilters[category].push(value);
+      }
+
+      // Update UI
+      document.querySelectorAll(`.filter-option[data-category="${category}"]`).forEach(el => {
+        el.classList.toggle('active', traitFilters[category]?.includes(el.dataset.value));
+      });
+
+      applyFilters();
+    }
+
+    function clearFilters() {
+      traitFilters = {};
+      document.querySelectorAll('.filter-option').forEach(el => el.classList.remove('active'));
+      document.getElementById('search').value = '';
+      searchQuery = '';
+      applyFilters();
+    }
+
+    function handleSearch() {
+      searchQuery = document.getElementById('search').value.toLowerCase();
+      applyFilters();
+    }
+
+    function handleSort() {
+      sortBy = document.getElementById('sort').value;
+      applyFilters();
+    }
+
+    function applyFilters() {
+      filteredNormies = allNormies.filter(normie => {
+        // Search filter
+        if (searchQuery) {
+          const matchId = normie.id.toString().includes(searchQuery);
+          const matchName = normie.name.toLowerCase().includes(searchQuery);
+          if (!matchId && !matchName) return false;
+        }
+
+        // Trait filters
+        for (const [category, values] of Object.entries(traitFilters)) {
+          if (values.length === 0) continue;
+          const hasTrait = normie.attributes.some(attr => 
+            attr.trait_type === category && values.includes(attr.value)
+          );
+          if (!hasTrait) return false;
+        }
+
+        return true;
+      });
+
+      // Sort
+      filteredNormies.sort((a, b) => {
+        switch (sortBy) {
+          case 'id-asc': return a.id - b.id;
+          case 'id-desc': return b.id - a.id;
+          case 'pixels-asc': 
+            return getPixelCount(a) - getPixelCount(b);
+          case 'pixels-desc':
+            return getPixelCount(b) - getPixelCount(a);
+          default: return 0;
+        }
+      });
+
+      currentPage = 1;
+      renderGallery();
+    }
+
+    function getPixelCount(normie) {
+      const attr = normie.attributes.find(a => a.trait_type === 'Pixel Count');
+      return attr?.value || 0;
+    }
+
+    function renderGallery() {
+      const grid = document.getElementById('grid');
+      const start = (currentPage - 1) * PER_PAGE;
+      const pageNormies = filteredNormies.slice(start, start + PER_PAGE);
+
+      document.getElementById('filtered-count').textContent = filteredNormies.length;
+      document.getElementById('total-count').textContent = filteredNormies.length;
+      document.getElementById('showing-count').textContent = Math.min(start + PER_PAGE, filteredNormies.length);
+
+      if (pageNormies.length === 0) {
+        grid.innerHTML = '<div class="loading">No Normies found matching your filters.</div>';
+        document.getElementById('pagination').innerHTML = '';
+        return;
+      }
+
+      grid.innerHTML = pageNormies.map(normie => {
+        const traits = normie.attributes
+          .filter(a => TRAIT_CATEGORIES.includes(a.trait_type))
+          .slice(0, 3);
+
+        return `
+          <div class="card" onclick="showModal(${normie.id})">
+            <div class="card-image">
+              <img src="${API_BASE}/normie/${normie.id}/image.svg" alt="${normie.name}" loading="lazy">
+            </div>
+            <div class="card-info">
+              <div class="card-name">${normie.name}</div>
+              <div class="card-traits">
+                ${traits.map(t => `<span class="trait-tag">${t.value}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      renderPagination();
+    }
+
+    function renderPagination() {
+      const totalPages = Math.ceil(filteredNormies.length / PER_PAGE);
+      const pagination = document.getElementById('pagination');
+      
+      if (totalPages <= 1) {
+        pagination.innerHTML = '';
+        return;
+      }
+
+      let pages = [];
+      if (totalPages <= 7) {
+        pages = Array.from({length: totalPages}, (_, i) => i + 1);
+      } else {
+        pages = [1];
+        if (currentPage > 3) pages.push('...');
+        for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+          pages.push(i);
+        }
+        if (currentPage < totalPages - 2) pages.push('...');
+        pages.push(totalPages);
+      }
+
+      pagination.innerHTML = `
+        <button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>←</button>
+        ${pages.map(p => p === '...' 
+          ? '<span class="page-btn" style="cursor:default;border:none;">...</span>'
+          : `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`
+        ).join('')}
+        <button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>→</button>
+      `;
+    }
+
+    function goToPage(page) {
+      currentPage = page;
+      renderGallery();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function showModal(id) {
+      const normie = allNormies.find(n => n.id === id) || await fetchNormie(id);
+      if (!normie) return;
+
+      const traits = normie.attributes.filter(a => TRAIT_CATEGORIES.includes(a.trait_type));
+      const pixelCount = getPixelCount(normie);
+      const level = normie.attributes.find(a => a.trait_type === 'Level')?.value || 1;
+
+      document.getElementById('modal-content').innerHTML = `
+        <div class="modal-image">
+          <img src="${API_BASE}/normie/${normie.id}/image.svg" alt="${normie.name}">
+        </div>
+        <div class="modal-details">
+          <h2>${normie.name}</h2>
+          <div class="modal-traits">
+            ${traits.map(t => `
+              <div class="modal-trait">
+                <div class="modal-trait-label">${t.trait_type}</div>
+                <div class="modal-trait-value">${t.value}</div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="modal-stats">
+            <div class="modal-stat">
+              <div class="modal-stat-value">#${normie.id}</div>
+              <div class="modal-stat-label">Token ID</div>
+            </div>
+            <div class="modal-stat">
+              <div class="modal-stat-value">${pixelCount}</div>
+              <div class="modal-stat-label">Pixels</div>
+            </div>
+            <div class="modal-stat">
+              <div class="modal-stat-value">${level}</div>
+              <div class="modal-stat-label">Level</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('modal').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(event) {
+      if (event && event.target !== event.currentTarget) return;
+      document.getElementById('modal').classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function showLoading() {
+      document.getElementById('grid').innerHTML = `
+        <div class="loading">
+          <div class="loading-spinner"></div>
+          <div>Loading Normies...</div>
+        </div>
+      `;
+    }
+
+    // Close modal on escape
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    init();
+  </script>
+</body>
+</html>
