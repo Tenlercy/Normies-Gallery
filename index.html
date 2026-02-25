@@ -72,6 +72,40 @@
       padding: 1.5rem;
     }
 
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .input,
+    .select {
+      width: 100%;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-primary);
+      padding: 0.65rem 0.8rem;
+      font: inherit;
+    }
+
+    .input:focus,
+    .select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    .stats {
+      margin-bottom: 1rem;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -129,8 +163,14 @@
     .card-name {
       font-weight: 600;
       font-size: 0.85rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.25rem;
       font-family: 'Space Mono', monospace;
+    }
+
+    .card-id {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      margin-bottom: 0.5rem;
     }
 
     .card-traits {
@@ -145,6 +185,20 @@
       background: var(--bg-tertiary);
       border-radius: 6px;
       color: var(--text-secondary);
+    }
+
+    .trait-type {
+      color: var(--text-muted);
+      margin-right: 0.25rem;
+    }
+
+    .empty {
+      text-align: center;
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      color: var(--text-secondary);
+      padding: 3rem;
+      background: var(--bg-card);
     }
 
     .load-more {
@@ -175,6 +229,12 @@
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: var(--bg-secondary); }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    @media (max-width: 800px) {
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -188,9 +248,22 @@
   </header>
 
   <div class="container">
+    <div class="toolbar">
+      <input id="searchInput" class="input" type="search" placeholder="Search by #id, name, or trait..." />
+      <select id="traitFilter" class="select">
+        <option value="">All Traits</option>
+      </select>
+      <select id="sortBy" class="select">
+        <option value="id-asc">Sort: ID ↑</option>
+        <option value="id-desc">Sort: ID ↓</option>
+        <option value="name-asc">Sort: Name A → Z</option>
+      </select>
+    </div>
+    <div class="stats" id="stats"></div>
     <div class="grid" id="grid"></div>
+    <div class="empty" id="emptyState" hidden>No Normies match your current filters.</div>
     <div class="load-more">
-      <button id="loadMore" onclick="loadMore()">Load More</button>
+      <button id="loadMore">Load More</button>
     </div>
   </div>
 
@@ -200,8 +273,18 @@
     let currentStart = 0;
     let isLoading = false;
     let loadedIds = new Set();
+    const normies = [];
+    const knownTraitValues = new Set();
 
     const TRAIT_CATEGORIES = ['Type', 'Gender', 'Age', 'Hair Style', 'Facial Feature', 'Eyes', 'Expression', 'Accessory'];
+
+    const grid = document.getElementById('grid');
+    const loadMoreBtn = document.getElementById('loadMore');
+    const searchInput = document.getElementById('searchInput');
+    const traitFilter = document.getElementById('traitFilter');
+    const sortBy = document.getElementById('sortBy');
+    const stats = document.getElementById('stats');
+    const emptyState = document.getElementById('emptyState');
 
     async function fetchNormie(id) {
       try {
@@ -214,15 +297,104 @@
       }
     }
 
+    function parseNormieId(normie) {
+      return Number(normie?.name?.split('#')[1] || 0);
+    }
+
+    function getDisplayTraits(normie) {
+      return (normie.attributes || []).filter(a => TRAIT_CATEGORIES.includes(a.trait_type));
+    }
+
+    function createTraitMarkup(traits) {
+      return traits
+        .slice(0, 4)
+        .map(t => `<span class="trait-tag"><span class="trait-type">${t.trait_type}:</span>${t.value}</span>`)
+        .join('');
+    }
+
+    function createCard(normie) {
+      const id = parseNormieId(normie);
+      const traits = getDisplayTraits(normie);
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-image">
+          <div class="loading-placeholder">Loading...</div>
+          <img class="hidden" src="${API_BASE}/normie/${id}/image.svg" 
+               alt="${normie.name}"
+               onload="this.previousElementSibling.remove(); this.classList.remove('hidden')"
+               onerror="this.style.display='none'; this.previousElementSibling.textContent='Failed'">
+        </div>
+        <div class="card-info">
+          <div class="card-name">${normie.name}</div>
+          <div class="card-id">Normie #${id}</div>
+          <div class="card-traits">${createTraitMarkup(traits)}</div>
+        </div>
+      `;
+      return card;
+    }
+
+    function updateTraitFilterOptions() {
+      const existingValue = traitFilter.value;
+      const sorted = Array.from(knownTraitValues).sort((a, b) => a.localeCompare(b));
+      traitFilter.innerHTML = '<option value="">All Traits</option>' +
+        sorted.map(value => `<option value="${value}">${value}</option>`).join('');
+      traitFilter.value = sorted.includes(existingValue) ? existingValue : '';
+    }
+
+    function sortNormies(items) {
+      const list = [...items];
+      switch (sortBy.value) {
+        case 'id-desc':
+          return list.sort((a, b) => parseNormieId(b) - parseNormieId(a));
+        case 'name-asc':
+          return list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+        case 'id-asc':
+        default:
+          return list.sort((a, b) => parseNormieId(a) - parseNormieId(b));
+      }
+    }
+
+    function filterNormies() {
+      const query = searchInput.value.trim().toLowerCase();
+      const selectedTrait = traitFilter.value;
+
+      return normies.filter(normie => {
+        const id = parseNormieId(normie);
+        const traits = getDisplayTraits(normie);
+        const haystack = `${normie.name} #${id} ${traits.map(t => `${t.trait_type} ${t.value}`).join(' ')}`.toLowerCase();
+        const matchesSearch = !query || haystack.includes(query);
+        const matchesTrait = !selectedTrait || traits.some(t => `${t.trait_type}: ${t.value}` === selectedTrait);
+        return matchesSearch && matchesTrait;
+      });
+    }
+
+    function renderStats(filteredCount) {
+      stats.innerHTML = `
+        <span>Collection: <strong>Normies</strong></span>
+        <span>Loaded: <strong>${normies.length}</strong></span>
+        <span>Visible: <strong>${filteredCount}</strong></span>
+      `;
+    }
+
+    function renderGrid() {
+      const filtered = sortNormies(filterNormies());
+      grid.innerHTML = '';
+
+      filtered.forEach(normie => {
+        grid.appendChild(createCard(normie));
+      });
+
+      emptyState.hidden = filtered.length !== 0;
+      renderStats(filtered.length);
+    }
+
     async function loadMore() {
       if (isLoading) return;
       isLoading = true;
       
-      const btn = document.getElementById('loadMore');
-      btn.disabled = true;
-      btn.textContent = 'Loading...';
-
-      const grid = document.getElementById('grid');
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.textContent = 'Loading...';
       const ids = [];
       
       // Find next batch of IDs
@@ -241,40 +413,31 @@
         
         for (const normie of results) {
           if (!normie) continue;
-          
-          const traits = normie.attributes
-            .filter(a => TRAIT_CATEGORIES.includes(a.trait_type))
-            .slice(0, 3);
 
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.innerHTML = `
-            <div class="card-image">
-              <div class="loading-placeholder">Loading...</div>
-              <img src="${API_BASE}/normie/${normie.name.split('#')[1]}/image.svg" 
-                   alt="${normie.name}"
-                   onload="this.previousElementSibling.remove(); this.classList.remove('hidden')"
-                   onerror="this.style.display='none'; this.previousElementSibling.textContent='Failed'">
-            </div>
-            <div class="card-info">
-              <div class="card-name">${normie.name}</div>
-              <div class="card-traits">
-                ${traits.map(t => `<span class="trait-tag">${t.value}</span>`).join('')}
-              </div>
-            </div>
-          `;
-          grid.appendChild(card);
+          normies.push(normie);
+          getDisplayTraits(normie).forEach(t => knownTraitValues.add(`${t.trait_type}: ${t.value}`));
         }
         
         // Small delay between batches
         await new Promise(r => setTimeout(r, 100));
       }
 
-      currentStart = Math.max(...ids) + 1;
-      btn.disabled = false;
-      btn.textContent = 'Load More';
+      updateTraitFilterOptions();
+      renderGrid();
+
+      if (ids.length > 0) {
+        currentStart = Math.max(...ids) + 1;
+      }
+
+      loadMoreBtn.disabled = false;
+      loadMoreBtn.textContent = 'Load More';
       isLoading = false;
     }
+
+    searchInput.addEventListener('input', renderGrid);
+    traitFilter.addEventListener('change', renderGrid);
+    sortBy.addEventListener('change', renderGrid);
+    loadMoreBtn.addEventListener('click', loadMore);
 
     // Initial load
     loadMore();
