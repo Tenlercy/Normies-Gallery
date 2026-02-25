@@ -45,6 +45,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
     }
 
     .logo {
@@ -70,6 +72,35 @@
       max-width: 1800px;
       margin: 0 auto;
       padding: 1.5rem;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: flex-end;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-copy h1 {
+      font-size: clamp(1.2rem, 2vw, 1.8rem);
+      margin-bottom: 0.35rem;
+    }
+
+    .hero-copy p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .status-pill {
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      border-radius: 999px;
+      padding: 0.45rem 0.8rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      font-family: 'Space Mono', monospace;
     }
 
     .grid {
@@ -152,6 +183,15 @@
       padding: 2rem;
     }
 
+    .status-text {
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      min-height: 1.3rem;
+      margin-top: -0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
     .load-more button {
       padding: 0.75rem 2rem;
       background: var(--accent);
@@ -184,13 +224,21 @@
         <div class="logo-icon">◈</div>
         Normies Gallery
       </div>
+      <div class="status-pill" id="progressPill">0 loaded</div>
     </div>
   </header>
 
   <div class="container">
+    <section class="hero">
+      <div class="hero-copy">
+        <h1>Discover the entire Normies collection</h1>
+        <p>Fast-loading cards, curated trait tags, and smooth browsing for collectors.</p>
+      </div>
+    </section>
     <div class="grid" id="grid"></div>
+    <p class="status-text" id="statusText" aria-live="polite"></p>
     <div class="load-more">
-      <button id="loadMore" onclick="loadMore()">Load More</button>
+      <button id="loadMore">Load More</button>
     </div>
   </div>
 
@@ -199,7 +247,9 @@
     const PER_PAGE = 50;
     let currentStart = 0;
     let isLoading = false;
+    let loadedCount = 0;
     let loadedIds = new Set();
+    const MAX_ID = 10000;
 
     const TRAIT_CATEGORIES = ['Type', 'Gender', 'Age', 'Hair Style', 'Facial Feature', 'Eyes', 'Expression', 'Accessory'];
 
@@ -217,64 +267,121 @@
     async function loadMore() {
       if (isLoading) return;
       isLoading = true;
-      
+
       const btn = document.getElementById('loadMore');
+      const statusText = document.getElementById('statusText');
       btn.disabled = true;
       btn.textContent = 'Loading...';
+      statusText.textContent = 'Fetching next batch...';
 
       const grid = document.getElementById('grid');
       const ids = [];
-      
+
       // Find next batch of IDs
-      for (let i = currentStart; ids.length < PER_PAGE && i < 10000; i++) {
+      for (let i = currentStart; ids.length < PER_PAGE && i < MAX_ID; i++) {
         if (!loadedIds.has(i)) {
           ids.push(i);
           loadedIds.add(i);
         }
       }
 
+      if (!ids.length) {
+        statusText.textContent = 'No more items available.';
+        btn.textContent = 'All Loaded';
+        isLoading = false;
+        return;
+      }
+
       // Fetch in smaller batches with delays
       const BATCH = 10;
+      let appendedThisRun = 0;
+
       for (let i = 0; i < ids.length; i += BATCH) {
         const batch = ids.slice(i, i + BATCH);
         const results = await Promise.all(batch.map(id => fetchNormie(id)));
-        
+
+        const fragment = document.createDocumentFragment();
         for (const normie of results) {
           if (!normie) continue;
-          
+
           const traits = normie.attributes
             .filter(a => TRAIT_CATEGORIES.includes(a.trait_type))
             .slice(0, 3);
 
           const card = document.createElement('div');
           card.className = 'card';
-          card.innerHTML = `
-            <div class="card-image">
-              <div class="loading-placeholder">Loading...</div>
-              <img src="${API_BASE}/normie/${normie.name.split('#')[1]}/image.svg" 
-                   alt="${normie.name}"
-                   onload="this.previousElementSibling.remove(); this.classList.remove('hidden')"
-                   onerror="this.style.display='none'; this.previousElementSibling.textContent='Failed'">
-            </div>
-            <div class="card-info">
-              <div class="card-name">${normie.name}</div>
-              <div class="card-traits">
-                ${traits.map(t => `<span class="trait-tag">${t.value}</span>`).join('')}
-              </div>
-            </div>
-          `;
-          grid.appendChild(card);
+
+          const imageWrap = document.createElement('div');
+          imageWrap.className = 'card-image';
+
+          const placeholder = document.createElement('div');
+          placeholder.className = 'loading-placeholder';
+          placeholder.textContent = 'Loading...';
+
+          const img = document.createElement('img');
+          const imageId = normie.name.split('#')[1];
+          img.src = `${API_BASE}/normie/${imageId}/image.svg`;
+          img.alt = normie.name;
+          img.classList.add('hidden');
+          img.addEventListener('load', () => {
+            placeholder.remove();
+            img.classList.remove('hidden');
+          });
+          img.addEventListener('error', () => {
+            img.style.display = 'none';
+            placeholder.textContent = 'Failed';
+          });
+
+          imageWrap.append(placeholder, img);
+
+          const info = document.createElement('div');
+          info.className = 'card-info';
+
+          const name = document.createElement('div');
+          name.className = 'card-name';
+          name.textContent = normie.name;
+
+          const traitsWrap = document.createElement('div');
+          traitsWrap.className = 'card-traits';
+
+          for (const trait of traits) {
+            const tag = document.createElement('span');
+            tag.className = 'trait-tag';
+            tag.textContent = trait.value;
+            traitsWrap.appendChild(tag);
+          }
+
+          info.append(name, traitsWrap);
+          card.append(imageWrap, info);
+          fragment.appendChild(card);
+          appendedThisRun += 1;
         }
-        
+
+        grid.appendChild(fragment);
         // Small delay between batches
         await new Promise(r => setTimeout(r, 100));
       }
 
       currentStart = Math.max(...ids) + 1;
-      btn.disabled = false;
-      btn.textContent = 'Load More';
+      loadedCount += appendedThisRun;
+      document.getElementById('progressPill').textContent = `${loadedCount} loaded`;
+
+      if (currentStart >= MAX_ID) {
+        btn.disabled = true;
+        btn.textContent = 'All Loaded';
+        statusText.textContent = 'Reached collection limit.';
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Load More';
+        statusText.textContent = appendedThisRun
+          ? `Added ${appendedThisRun} new cards.`
+          : 'No cards returned in this batch.';
+      }
+
       isLoading = false;
     }
+
+    document.getElementById('loadMore').addEventListener('click', loadMore);
 
     // Initial load
     loadMore();
